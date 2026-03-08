@@ -1,19 +1,19 @@
 import { useState, useMemo, useEffect } from "react";
-import { MessageCircle, Instagram, Search, Loader2, AlertCircle } from "lucide-react";
+import {
+  MessageCircle,
+  Instagram,
+  Search,
+  Loader2,
+  AlertCircle,
+  Github,
+  Linkedin,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 import { WHATSAPP_NUMBER, type ProductCategory } from "@/data/products";
+import { fetchCatalogProducts, type CatalogProduct } from "@/services/products";
 
-// Import da sua imagem de fallback
 import heroImage from "@/assets/wallpaper1.jpeg";
-import placeholderImage from "@/assets/in-prep.jpg";
-
-interface GoogleProduct {
-  nome: string;
-  imagem: string;
-  categoria: string;
-  valorVenda: number;
-}
 
 const categories: { value: ProductCategory | "todos"; label: string }[] = [
   { value: "todos", label: "Todos" },
@@ -22,114 +22,44 @@ const categories: { value: ProductCategory | "todos"; label: string }[] = [
   { value: "pulseira", label: "Pulseiras" },
   { value: "brinco", label: "Brincos" },
   { value: "kit", label: "Kits" },
+  { value: "outros", label: "Outros"},
 ];
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<ProductCategory | "todos">("todos");
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
-  const fetchProducts = async () => {
-    try {
-      setIsLoading(true)
-      setError(false)
-
-      const url = import.meta.env.VITE_GET_GOOGLE_SHEET_URL
-
-      console.log("[Catalog] URL carregada do .env:", url)
-
-      if (!url) {
-        console.error("[Catalog] URL da planilha não configurada no .env")
-        setError(true)
-        return
-      }
-
-      const response = await fetch(url, {
-        method: "GET",
-        redirect: "follow",
-      })
-
-      console.log("[Catalog] Status:", response.status, response.statusText)
-      console.log("[Catalog] URL final após redirect:", response.url)
-      console.log("[Catalog] Headers:", Object.fromEntries(response.headers.entries()))
-
-      const responseText = await response.text()
-
-      console.log("[Catalog] Resposta bruta:")
-      console.log(responseText)
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`)
-      }
-
-      let data
+    const fetchProducts = async () => {
       try {
-        data = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error("[Catalog] Erro ao converter resposta para JSON:", parseError)
-        throw new Error("A resposta não é um JSON válido")
+        setIsLoading(true);
+        setError(false);
+
+        const formattedProducts = await fetchCatalogProducts();
+        setProducts(formattedProducts);
+      } catch (err) {
+        console.error("[Catalog] Erro detalhado ao carregar produtos:", err);
+        setError(true);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      console.log("[Catalog] JSON convertido:", data)
-
-      if (!data.products) {
-        console.error("[Catalog] Campo 'products' não encontrado no retorno:", data)
-        throw new Error("Formato de dados inválido: 'products' não encontrado")
-      }
-
-      const formattedProducts = data.products.map((p: GoogleProduct, index: number) => {
-        const rawCategory = p.categoria?.toLowerCase().trim()
-        const category =
-          rawCategory && rawCategory !== ""
-            ? (rawCategory as ProductCategory)
-            : "todos"
-
-        return {
-          id: `sheet-${index}`,
-          name: p.nome,
-          images: [p.imagem && p.imagem.trim() !== "" ? p.imagem : placeholderImage],
-          category,
-          price: p.valorVenda,
-        }
-      })
-
-      console.log("[Catalog] Produtos formatados:", formattedProducts)
-
-      setProducts(formattedProducts)
-    } catch (err) {
-      console.error("[Catalog] Erro detalhado ao carregar produtos:", err)
-
-      if (err instanceof Error) {
-        console.error("[Catalog] Mensagem do erro:", err.message)
-        console.error("[Catalog] Stack:", err.stack)
-      }
-
-      setError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  fetchProducts()
-}, [])
+    fetchProducts();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Se a categoria do produto for "todos", ele aparece em qualquer categoria selecionada 
-      // OU se a categoria ativa for "todos", mostra tudo.
-      const matchesCategory = 
-        activeCategory === "todos" || 
-        p.category === activeCategory;
-        
+      const matchesCategory = activeCategory === "todos" || p.category === activeCategory;
+
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, activeCategory, products]);
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -141,6 +71,9 @@ const Index = () => {
           <nav className="flex items-center gap-6">
             <a href="#pecas" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
               Peças
+            </a>
+            <a href="#faq" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
+              Perguntas
             </a>
             <a href="#sobre" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
               Sobre
@@ -171,7 +104,7 @@ const Index = () => {
           </h2>
           <div className="w-16 h-px bg-gold mx-auto my-6 animate-fade-in-up" />
           <p className="font-body text-sm md:text-base text-primary-foreground/80 tracking-widest uppercase animate-fade-in-up">
-            Elegância que abençoa
+            Seu look completo começa aqui
           </p>
           <a
             href="#pecas"
@@ -252,6 +185,61 @@ const Index = () => {
         </div>
       </section>
 
+      {/* FAQ */}
+    <section id="faq" className="py-20 md:py-24 bg-background">
+      <div className="container mx-auto px-6 max-w-3xl">
+        <div className="text-center mb-12">
+          <h2 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide">
+            Perguntas frequentes
+          </h2>
+          <div className="w-12 h-px bg-gold mx-auto mt-4" />
+        </div>
+
+        {[
+          {
+            question: "Qual é o material?",
+            answer:
+              "Trabalhamos com semijoias banhadas em 50 milésimos de prata, garantindo brilho, durabilidade e acabamento sofisticado. Além disso, todas as peças recebem um banho de verniz protetor, que ajuda a preservar o brilho por mais tempo e aumenta a resistência ao desgaste do uso diário.",
+          },
+          {
+            question: "Pode causar alergia?",
+            answer:
+              "Não. Nossas peças são livres de níquel e consideradas hipoalergênicas. Isso significa que foram desenvolvidas para reduzir significativamente o risco de alergias, sendo confortáveis para a maioria das pessoas que possuem sensibilidade a metais comuns.",
+          },
+          {
+            question: "Como comprar?",
+            answer:
+              "É muito simples. Basta entrar em contato conosco pelo WhatsApp ou pelo direct do Instagram. Nossa equipe irá te atender, tirar dúvidas sobre as peças disponíveis e ajudar você a escolher a semijoia perfeita.",
+          },
+          {
+            question: "Frete",
+            answer:
+              "O envio das peças é feito após a confirmação do pedido. O valor do frete é por conta do cliente e pode variar de acordo com a cidade ou região de entrega. Informamos o valor exato no momento da compra.",
+          },
+        ].map((faq, index) => (
+          <div key={index} className="border-b border-border py-4">
+            <button
+              onClick={() => setOpenFaq(openFaq === index ? null : index)}
+              className="w-full flex justify-between items-center text-left"
+            >
+              <span className="font-body text-sm md:text-base text-foreground">
+                {faq.question}
+              </span>
+              <span className="text-secondary text-lg">
+                {openFaq === index ? "−" : "+"}
+              </span>
+            </button>
+
+            {openFaq === index && (
+              <p className="mt-3 text-sm text-secondary leading-relaxed">
+                {faq.answer}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+
       {/* About */}
       <section id="sobre" className="py-20 bg-muted">
         <div className="container mx-auto px-6 max-w-2xl text-center">
@@ -277,20 +265,63 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-primary text-primary-foreground py-12">
-        <div className="container mx-auto px-6 text-center">
+        <div className="container mx-auto px-6 text-center relative">
           <h3 className="font-display text-2xl tracking-[0.15em] mb-4">Uze Bless</h3>
           <p className="font-body text-xs tracking-widest uppercase text-primary-foreground/60 mb-6">
-            Semijoias com bênção e estilo
+            Seu look completo começa aqui ✨
           </p>
+
           <div className="flex justify-center gap-4 mb-8">
-            <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors">
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            >
               <MessageCircle className="w-4 h-4" />
             </a>
-            <a href="#" className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors">
+
+            <a
+              href="https://www.instagram.com/uzebless/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            >
               <Instagram className="w-4 h-4" />
             </a>
           </div>
-          <p className="font-body text-xs text-primary-foreground/40">© 2026 Uze Bless. Todos os direitos reservados.</p>
+
+          <p className="font-body text-xs text-primary-foreground/40">
+            © 2026 Uze Bless. Todos os direitos reservados.
+          </p>
+
+          <div className="mt-8 md:mt-0 md:absolute md:right-6 md:bottom-0 text-center md:text-right">
+            <p className="font-body text-xs text-primary-foreground/60 mb-2">
+              Feito por Thiago Cury
+            </p>
+
+            <div className="flex justify-center md:justify-end gap-3">
+              <a
+                href="https://github.com/ThCury"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+                className="w-8 h-8 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+              >
+                <Github className="w-4 h-4" />
+              </a>
+
+              <a
+                href="https://www.linkedin.com/in/thiago-cury-freire-7b226a207/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+                className="w-8 h-8 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

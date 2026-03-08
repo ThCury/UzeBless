@@ -5,9 +5,9 @@ import product4 from "@/assets/product-4.jpg";
 import product5 from "@/assets/product-5.jpg";
 import product6 from "@/assets/product-6.jpg";
 
-export const WHATSAPP_NUMBER = "5500000000000"; // Substituir pelo número real
+export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
-export type ProductCategory = "colar" | "brinco" | "pulseira" | "anel" | "kit";
+export type ProductCategory = "colar" | "brinco" | "pulseira" | "anel" | "kit" | "outros";
 
 export interface Product {
   id: string;

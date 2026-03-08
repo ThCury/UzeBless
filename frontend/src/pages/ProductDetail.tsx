@@ -1,11 +1,14 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, ArrowLeft } from "lucide-react";
-import { products, WHATSAPP_NUMBER } from "@/data/products";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { WHATSAPP_NUMBER } from "@/data/products";
+import { fetchCatalogProducts, type CatalogProduct } from "@/services/products";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = products.find((p) => p.id === id);
+  const [product, setProduct] = useState<CatalogProduct | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
@@ -13,21 +16,25 @@ const ProductDetail = () => {
   const dragStart = useRef({ x: 0, y: 0 });
   const dragOffset = useRef({ x: 0, y: 0 });
 
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-3xl text-foreground mb-4">Produto não encontrado</h1>
-          <Link to="/" className="font-body text-sm text-secondary hover:text-foreground transition-colors underline">
-            Voltar para a loja
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const loadProduct = async () => {
+      try {
+        setIsLoading(true);
+        setError(false);
 
-  const message = encodeURIComponent(`Olá! Tenho interesse na peça: ${product.name} - ${product.price}`);
-  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
+        const products = await fetchCatalogProducts();
+        const found = products.find((p) => p.id === id) ?? null;
+        setProduct(found);
+      } catch (err) {
+        console.error("[ProductDetail] Erro ao carregar produto:", err);
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [id]);
 
   const resetZoom = () => {
     setZoomed(false);
@@ -35,11 +42,13 @@ const ProductDetail = () => {
   };
 
   const handlePrev = () => {
+    if (!product) return;
     resetZoom();
     setCurrentIndex((i) => (i > 0 ? i - 1 : product.images.length - 1));
   };
 
   const handleNext = () => {
+    if (!product) return;
     resetZoom();
     setCurrentIndex((i) => (i < product.images.length - 1 ? i + 1 : 0));
   };
@@ -65,6 +74,47 @@ const ProductDetail = () => {
   };
 
   const handleMouseUp = () => setIsDragging(false);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-gold" />
+          <p className="font-body text-sm text-secondary">Carregando produto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center flex flex-col items-center gap-3">
+          <AlertCircle className="w-8 h-8 text-destructive" />
+          <p className="font-body text-sm text-secondary">N�o foi poss�vel carregar o produto.</p>
+          <Link to="/" className="font-body text-sm text-secondary hover:text-foreground transition-colors underline">
+            Voltar para a loja
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-display text-3xl text-foreground mb-4">Produto n�o encontrado</h1>
+          <Link to="/" className="font-body text-sm text-secondary hover:text-foreground transition-colors underline">
+            Voltar para a loja
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const message = encodeURIComponent(`Ol�! Tenho interesse na pe�a: ${product.name} - ${product.price}`);
+  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,7 +172,10 @@ const ProductDetail = () => {
                 />
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleZoom(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleZoom();
+                  }}
                   className="absolute top-4 right-4 w-10 h-10 bg-primary/70 text-primary-foreground flex items-center justify-center hover:bg-primary transition-colors"
                 >
                   {zoomed ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
@@ -131,13 +184,19 @@ const ProductDetail = () => {
                 {product.images.length > 1 && (
                   <>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePrev();
+                      }}
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary/70 text-primary-foreground flex items-center justify-center hover:bg-primary transition-colors"
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNext();
+                      }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary/70 text-primary-foreground flex items-center justify-center hover:bg-primary transition-colors"
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -152,7 +211,10 @@ const ProductDetail = () => {
                   {product.images.map((img, i) => (
                     <button
                       key={i}
-                      onClick={() => { resetZoom(); setCurrentIndex(i); }}
+                      onClick={() => {
+                        resetZoom();
+                        setCurrentIndex(i);
+                      }}
                       className={`shrink-0 w-20 h-20 overflow-hidden border-2 transition-colors ${
                         i === currentIndex ? "border-foreground" : "border-border hover:border-secondary"
                       }`}
@@ -167,17 +229,11 @@ const ProductDetail = () => {
             {/* Product info */}
             <div className="flex flex-col justify-center">
               <p className="font-body text-xs tracking-[0.3em] uppercase text-secondary mb-3">Uze Bless</p>
-              <h1 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide mb-4">
-                {product.name}
-              </h1>
+              <h1 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide mb-4">{product.name}</h1>
               <div className="w-12 h-px bg-gold mb-6" />
               <p className="font-display text-2xl text-foreground mb-8">{product.price}</p>
 
-              {product.description && (
-                <p className="font-body text-sm leading-relaxed text-secondary mb-8">
-                  {product.description}
-                </p>
-              )}
+              {product.description && <p className="font-body text-sm leading-relaxed text-secondary mb-8">{product.description}</p>}
 
               {product.details && product.details.length > 0 && (
                 <div className="mb-10">
