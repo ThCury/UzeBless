@@ -5,7 +5,7 @@ import ProductCard from "@/components/ProductCard";
 import { WHATSAPP_NUMBER, type ProductCategory } from "@/data/products";
 
 // Import da sua imagem de fallback
-import heroImage from "@/assets/hero-jewelry.jpg";
+import heroImage from "@/assets/wallpaper1.jpeg";
 import placeholderImage from "@/assets/in-prep.jpg";
 
 interface GoogleProduct {
