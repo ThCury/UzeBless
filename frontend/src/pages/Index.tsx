@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
-import { WHATSAPP_NUMBER, type ProductCategory } from "@/data/products";
+import { WHATSAPP_NUMBER, getPrimaryProductImage, type ProductCategory } from "@/data/products";
 import { fetchCatalogProducts, type CatalogProduct } from "@/services/products";
 
 import heroImage from "@/assets/wallpaper1.jpeg";
@@ -170,7 +170,7 @@ const Index = () => {
                 <ProductCard
                   key={product.id}
                   id={product.id}
-                  image={product.images[0]}
+                  image={getPrimaryProductImage(product.images)}
                   name={product.name}
                   price={product.price}
                   whatsappNumber={WHATSAPP_NUMBER}

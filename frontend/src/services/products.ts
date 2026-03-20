@@ -1,5 +1,5 @@
-import placeholderImage from "@/assets/in-prep.jpg";
 import type { ProductCategory } from "@/data/products";
+import { normalizeProductImages } from "@/data/products";
 
 interface GoogleProduct {
   nome: string;
@@ -23,6 +23,9 @@ const formatBRL = (value: number) =>
     style: "currency",
     currency: "BRL",
   }).format(value ?? 0);
+
+const parseProductImages = (rawImages: string) =>
+  normalizeProductImages(rawImages?.split(";"));
 
 export const fetchCatalogProducts = async (): Promise<CatalogProduct[]> => {
   const url = import.meta.env.VITE_GET_GOOGLE_SHEET_URL;
@@ -56,7 +59,7 @@ export const fetchCatalogProducts = async (): Promise<CatalogProduct[]> => {
     return {
       id: `sheet-${index}`,
       name: p.nome,
-      images: [p.imagem && p.imagem.trim() !== "" ? p.imagem : placeholderImage],
+      images: parseProductImages(p.imagem),
       category,
       price: formatBRL(Number(p.valorVenda)),
     };

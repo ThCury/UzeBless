@@ -1,18 +1,15 @@
 import { Link } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 interface ProductCardProps {
   id: string;
   image: string;
   name: string;
   price: string;
-  whatsappNumber: string;
+  onBuy: () => void;
 }
 
-const ProductCard = ({ id, image, name, price, whatsappNumber }: ProductCardProps) => {
-  const message = encodeURIComponent(`Olá! Tenho interesse na peça: ${name} - ${price}`);
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${message}`;
-
+const ProductCard = ({ id, image, name, price, onBuy }: ProductCardProps) => {
   return (
     <div className="group">
       <div className="relative overflow-hidden bg-muted mb-4">
@@ -30,15 +27,14 @@ const ProductCard = ({ id, image, name, price, whatsappNumber }: ProductCardProp
           >
             Ver Detalhes
           </Link>
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={onBuy}
             className="pointer-events-auto flex items-center gap-2 text-primary-foreground font-body text-sm font-medium tracking-widest uppercase"
           >
-            <MessageCircle className="w-5 h-5" />
+            <ShoppingBag className="w-5 h-5" />
             Comprar
-          </a>
+          </button>
         </div>
       </div>
       <Link to={`/produto/${id}`}>

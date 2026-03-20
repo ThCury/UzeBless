@@ -4,6 +4,7 @@ import product3 from "@/assets/product-3.jpg";
 import product4 from "@/assets/product-4.jpg";
 import product5 from "@/assets/product-5.jpg";
 import product6 from "@/assets/product-6.jpg";
+import placeholderImage from "@/assets/in-prep.jpg";
 
 export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
 
@@ -19,10 +20,18 @@ export interface Product {
   details?: string[];
 }
 
+export const normalizeProductImages = (images?: string[]) => {
+  const normalizedImages = images?.map((image) => image.trim()).filter(Boolean) ?? [];
+
+  return normalizedImages.length > 0 ? normalizedImages : [placeholderImage];
+};
+
+export const getPrimaryProductImage = (images?: string[]) => normalizeProductImages(images)[0];
+
 export const products: Product[] = [
   {
     id: "colar-corrente-dupla",
-    images: [product1, product2, product3],
+    images: normalizeProductImages([product1, product2, product3]),
     name: "Colar Corrente Dupla",
     price: "R$ 89,90",
     category: "colar",
@@ -31,7 +40,7 @@ export const products: Product[] = [
   },
   {
     id: "argolas-douradas",
-    images: [product2, product1, product4],
+    images: normalizeProductImages([product2, product1, product4]),
     name: "Argolas Douradas",
     price: "R$ 59,90",
     category: "brinco",
@@ -40,7 +49,7 @@ export const products: Product[] = [
   },
   {
     id: "pulseira-perola",
-    images: [product3, product5, product6],
+    images: normalizeProductImages([product3, product5, product6]),
     name: "Pulseira Pérola",
     price: "R$ 49,90",
     category: "pulseira",
@@ -49,7 +58,7 @@ export const products: Product[] = [
   },
   {
     id: "anel-solitario",
-    images: [product4, product1, product2],
+    images: normalizeProductImages([product4, product1, product2]),
     name: "Anel Solitário",
     price: "R$ 79,90",
     category: "anel",
@@ -58,7 +67,7 @@ export const products: Product[] = [
   },
   {
     id: "colar-pingente-cristal",
-    images: [product5, product3, product6],
+    images: normalizeProductImages([product5, product3, product6]),
     name: "Colar Pingente Cristal",
     price: "R$ 99,90",
     category: "colar",
@@ -67,7 +76,7 @@ export const products: Product[] = [
   },
   {
     id: "kit-aneis-dourados",
-    images: [product6, product4, product5],
+    images: normalizeProductImages([product6, product4, product5]),
     name: "Kit Anéis Dourados",
     price: "R$ 69,90",
     category: "kit",
