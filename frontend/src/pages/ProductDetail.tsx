@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { WHATSAPP_NUMBER } from "@/data/products";
-import { fetchCatalogProducts, type CatalogProduct } from "@/services/products";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, ArrowLeft, ShoppingBag } from "lucide-react";
+import { products, WHATSAPP_NUMBER } from "@/data/products";
+import { useCart } from "@/contexts/CartContext";
+
+const PLACEHOLDER_IMAGE = "/placeholder.svg";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState<CatalogProduct | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { addItem } = useCart();
+  const product = products.find((p) => p.id === id);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
@@ -16,25 +17,29 @@ const ProductDetail = () => {
   const dragStart = useRef({ x: 0, y: 0 });
   const dragOffset = useRef({ x: 0, y: 0 });
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      try {
-        setIsLoading(true);
-        setError(false);
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-display text-3xl text-foreground mb-4">Produto não encontrado</h1>
+          <Link to="/" className="font-body text-sm text-secondary hover:text-foreground transition-colors underline">
+            Voltar para a loja
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-        const products = await fetchCatalogProducts();
-        const found = products.find((p) => p.id === id) ?? null;
-        setProduct(found);
-      } catch (err) {
-        console.error("[ProductDetail] Erro ao carregar produto:", err);
-        setError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProduct();
-  }, [id]);
+  const primaryImage = product.images.find((image) => image !== PLACEHOLDER_IMAGE);
+  const message = encodeURIComponent(
+    [
+      `Olá! Tenho interesse neste produto: ${product.name}.`,
+      primaryImage ? `Imagem: ${primaryImage}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+  );
+  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
 
   const resetZoom = () => {
     setZoomed(false);
@@ -42,13 +47,11 @@ const ProductDetail = () => {
   };
 
   const handlePrev = () => {
-    if (!product) return;
     resetZoom();
     setCurrentIndex((i) => (i > 0 ? i - 1 : product.images.length - 1));
   };
 
   const handleNext = () => {
-    if (!product) return;
     resetZoom();
     setCurrentIndex((i) => (i < product.images.length - 1 ? i + 1 : 0));
   };
@@ -75,50 +78,8 @@ const ProductDetail = () => {
 
   const handleMouseUp = () => setIsDragging(false);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-gold" />
-          <p className="font-body text-sm text-secondary">Carregando produto...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center flex flex-col items-center gap-3">
-          <AlertCircle className="w-8 h-8 text-destructive" />
-          <p className="font-body text-sm text-secondary">N�o foi poss�vel carregar o produto.</p>
-          <Link to="/" className="font-body text-sm text-secondary hover:text-foreground transition-colors underline">
-            Voltar para a loja
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-3xl text-foreground mb-4">Produto n�o encontrado</h1>
-          <Link to="/" className="font-body text-sm text-secondary hover:text-foreground transition-colors underline">
-            Voltar para a loja
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const message = encodeURIComponent(`Ol�! Tenho interesse na pe�a: ${product.name} - ${product.price}`);
-  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="font-display text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground uppercase">
@@ -137,7 +98,6 @@ const ProductDetail = () => {
       </header>
 
       <div className="pt-[80px] pb-20">
-        {/* Breadcrumb */}
         <div className="container mx-auto px-6 py-4">
           <Link to="/#pecas" className="inline-flex items-center gap-2 font-body text-xs tracking-[0.15em] uppercase text-secondary hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />
@@ -147,9 +107,7 @@ const ProductDetail = () => {
 
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-            {/* Gallery */}
             <div>
-              {/* Main image */}
               <div
                 className="relative w-full aspect-square bg-muted overflow-hidden select-none mb-4"
                 onMouseDown={handleMouseDown}
@@ -205,7 +163,6 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Thumbnails */}
               {product.images.length > 1 && (
                 <div className="flex gap-3">
                   {product.images.map((img, i) => (
@@ -226,14 +183,19 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {/* Product info */}
             <div className="flex flex-col justify-center">
               <p className="font-body text-xs tracking-[0.3em] uppercase text-secondary mb-3">Uze Bless</p>
-              <h1 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide mb-4">{product.name}</h1>
+              <h1 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide mb-4">
+                {product.name}
+              </h1>
               <div className="w-12 h-px bg-gold mb-6" />
               <p className="font-display text-2xl text-foreground mb-8">{product.price}</p>
 
-              {product.description && <p className="font-body text-sm leading-relaxed text-secondary mb-8">{product.description}</p>}
+              {product.description && (
+                <p className="font-body text-sm leading-relaxed text-secondary mb-8">
+                  {product.description}
+                </p>
+              )}
 
               {product.details && product.details.length > 0 && (
                 <div className="mb-10">
@@ -249,15 +211,26 @@ const ProductDetail = () => {
                 </div>
               )}
 
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 font-body text-xs tracking-[0.2em] uppercase hover:bg-secondary transition-colors w-full md:w-auto"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Comprar via WhatsApp
-              </a>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    addItem(product);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 font-body text-xs tracking-[0.2em] uppercase hover:bg-secondary transition-colors flex-1"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  Adicionar ao Carrinho
+                </button>
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 border border-foreground text-foreground px-8 py-4 font-body text-xs tracking-[0.2em] uppercase hover:bg-foreground hover:text-background transition-all flex-1"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Comprar via WhatsApp
+                </a>
+              </div>
             </div>
           </div>
         </div>

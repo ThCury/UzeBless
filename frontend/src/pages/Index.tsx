@@ -1,19 +1,13 @@
-import { useState, useMemo, useEffect } from "react";
-import {
-  MessageCircle,
-  Instagram,
-  Search,
-  Loader2,
-  AlertCircle,
-  Github,
-  Linkedin,
-} from "lucide-react";
+import { useState, useMemo } from "react";
+import { MessageCircle, Instagram, Search, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 import ProductCard from "@/components/ProductCard";
-import { WHATSAPP_NUMBER, getPrimaryProductImage, type ProductCategory } from "@/data/products";
-import { fetchCatalogProducts, type CatalogProduct } from "@/services/products";
+import { products, WHATSAPP_NUMBER, type ProductCategory } from "@/data/products";
 
-import heroImage from "@/assets/wallpaper1.jpeg";
+import heroImage from "@/assets/hero-jewelry.jpg";
+
+const PLACEHOLDER_IMAGE = "/placeholder.svg";
 
 const categories: { value: ProductCategory | "todos"; label: string }[] = [
   { value: "todos", label: "Todos" },
@@ -22,44 +16,30 @@ const categories: { value: ProductCategory | "todos"; label: string }[] = [
   { value: "pulseira", label: "Pulseiras" },
   { value: "brinco", label: "Brincos" },
   { value: "kit", label: "Kits" },
-  { value: "outros", label: "Outros"},
+  { value: "outros", label: "Outros" },
 ];
 
 const Index = () => {
+  const { totalItems } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<ProductCategory | "todos">("todos");
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setIsLoading(true);
-        setError(false);
-
-        const formattedProducts = await fetchCatalogProducts();
-        setProducts(formattedProducts);
-      } catch (err) {
-        console.error("[Catalog] Erro detalhado ao carregar produtos:", err);
-        setError(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = activeCategory === "todos" || p.category === activeCategory;
+    return products
+      .filter((p) => {
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = activeCategory === "todos" || p.category === activeCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => {
+        const aHasRealImage = a.images[0] !== PLACEHOLDER_IMAGE;
+        const bHasRealImage = b.images[0] !== PLACEHOLDER_IMAGE;
 
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchQuery, activeCategory, products]);
+        if (aHasRealImage === bHasRealImage) return 0;
+        return aHasRealImage ? -1 : 1;
+      });
+  }, [searchQuery, activeCategory]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -72,12 +52,17 @@ const Index = () => {
             <a href="#pecas" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
               Peças
             </a>
-            <a href="#faq" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
-              Perguntas
-            </a>
             <a href="#sobre" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
               Sobre
             </a>
+            <Link to="/carrinho" className="relative text-foreground hover:text-secondary transition-colors">
+              <ShoppingBag className="w-5 h-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-gold text-primary-foreground text-[10px] font-body font-bold rounded-full flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}`}
               target="_blank"
@@ -99,16 +84,17 @@ const Index = () => {
           <p className="font-body text-xs tracking-[0.4em] uppercase text-primary-foreground/80 mb-4 animate-fade-in-up">
             Semijoias exclusivas
           </p>
-          <h2 className="font-display text-5xl md:text-7xl lg:text-8xl font-light text-primary-foreground tracking-wider animate-fade-in-up">
+          <h2 className="font-display text-5xl md:text-7xl lg:text-8xl font-light text-primary-foreground tracking-wider animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
             Uze Bless
           </h2>
-          <div className="w-16 h-px bg-gold mx-auto my-6 animate-fade-in-up" />
-          <p className="font-body text-sm md:text-base text-primary-foreground/80 tracking-widest uppercase animate-fade-in-up">
-            Seu look completo começa aqui
+          <div className="w-16 h-px bg-gold mx-auto my-6 animate-fade-in-up" style={{ animationDelay: "0.3s" }} />
+          <p className="font-body text-sm md:text-base text-primary-foreground/80 tracking-widest uppercase animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+            Elegância que abençoa
           </p>
           <a
             href="#pecas"
             className="inline-block mt-10 border border-primary-foreground/50 text-primary-foreground px-8 py-3 font-body text-xs tracking-[0.2em] uppercase hover:bg-primary-foreground hover:text-primary transition-all duration-300 animate-fade-in-up"
+            style={{ animationDelay: "0.55s" }}
           >
             Ver Coleção
           </a>
@@ -133,7 +119,7 @@ const Index = () => {
                 placeholder="Buscar peças..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-muted border border-border pl-11 pr-4 py-3 font-body text-sm text-foreground focus:outline-none focus:border-foreground transition-colors"
+                className="w-full bg-muted border border-border pl-11 pr-4 py-3 font-body text-sm text-foreground placeholder:text-secondary/60 focus:outline-none focus:border-foreground transition-colors"
               />
             </div>
             <div className="flex flex-wrap justify-center gap-2">
@@ -153,24 +139,13 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Logic for States: Loading, Error, or Grid */}
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin text-gold mb-4" />
-              <p className="font-body text-sm text-secondary tracking-widest uppercase">Carregando catálogo...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <AlertCircle className="w-10 h-10 text-destructive mb-4" />
-              <p className="font-body text-sm text-secondary">Não foi possível carregar os produtos.<br/>Tente novamente em instantes.</p>
-            </div>
-          ) : filteredProducts.length > 0 ? (
+          {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   id={product.id}
-                  image={getPrimaryProductImage(product.images)}
+                  image={product.images[0]}
                   name={product.name}
                   price={product.price}
                   whatsappNumber={WHATSAPP_NUMBER}
@@ -179,66 +154,11 @@ const Index = () => {
             </div>
           ) : (
             <p className="text-center font-body text-sm text-secondary py-16">
-              Nenhuma peça encontrada para os critérios selecionados.
+              Nenhuma peça encontrada.
             </p>
           )}
         </div>
       </section>
-
-      {/* FAQ */}
-    <section id="faq" className="py-20 md:py-24 bg-background">
-      <div className="container mx-auto px-6 max-w-3xl">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide">
-            Perguntas frequentes
-          </h2>
-          <div className="w-12 h-px bg-gold mx-auto mt-4" />
-        </div>
-
-        {[
-          {
-            question: "Qual é o material?",
-            answer:
-              "Trabalhamos com semijoias banhadas em 50 milésimos de prata, garantindo brilho, durabilidade e acabamento sofisticado. Além disso, todas as peças recebem um banho de verniz protetor, que ajuda a preservar o brilho por mais tempo e aumenta a resistência ao desgaste do uso diário.",
-          },
-          {
-            question: "Pode causar alergia?",
-            answer:
-              "Não. Nossas peças são livres de níquel e consideradas hipoalergênicas. Isso significa que foram desenvolvidas para reduzir significativamente o risco de alergias, sendo confortáveis para a maioria das pessoas que possuem sensibilidade a metais comuns.",
-          },
-          {
-            question: "Como comprar?",
-            answer:
-              "É muito simples. Basta entrar em contato conosco pelo WhatsApp ou pelo direct do Instagram. Nossa equipe irá te atender, tirar dúvidas sobre as peças disponíveis e ajudar você a escolher a semijoia perfeita.",
-          },
-          {
-            question: "Frete",
-            answer:
-              "O envio das peças é feito após a confirmação do pedido. O valor do frete é por conta do cliente e pode variar de acordo com a cidade ou região de entrega. Informamos o valor exato no momento da compra.",
-          },
-        ].map((faq, index) => (
-          <div key={index} className="border-b border-border py-4">
-            <button
-              onClick={() => setOpenFaq(openFaq === index ? null : index)}
-              className="w-full flex justify-between items-center text-left"
-            >
-              <span className="font-body text-sm md:text-base text-foreground">
-                {faq.question}
-              </span>
-              <span className="text-secondary text-lg">
-                {openFaq === index ? "−" : "+"}
-              </span>
-            </button>
-
-            {openFaq === index && (
-              <p className="mt-3 text-sm text-secondary leading-relaxed">
-                {faq.answer}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
 
       {/* About */}
       <section id="sobre" className="py-20 bg-muted">
@@ -265,67 +185,24 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-primary text-primary-foreground py-12">
-        <div className="container mx-auto px-6 text-center relative">
+        <div className="container mx-auto px-6 text-center">
           <h3 className="font-display text-2xl tracking-[0.15em] mb-4">Uze Bless</h3>
           <p className="font-body text-xs tracking-widest uppercase text-primary-foreground/60 mb-6">
-            Seu look completo começa aqui ✨
+            Semijoias com bênção e estilo
           </p>
-
           <div className="flex justify-center gap-4 mb-8">
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-            >
+            <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors">
               <MessageCircle className="w-4 h-4" />
             </a>
-
-            <a
-              href="https://www.instagram.com/uzebless/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-            >
+            <a href="#" className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors">
               <Instagram className="w-4 h-4" />
             </a>
           </div>
-
-          <p className="font-body text-xs text-primary-foreground/40">
-            © 2026 Uze Bless. Todos os direitos reservados.
-          </p>
-
-          <div className="mt-8 md:mt-0 md:absolute md:right-6 md:bottom-0 text-center md:text-right">
-            <p className="font-body text-xs text-primary-foreground/60 mb-2">
-              Feito por Thiago Cury
-            </p>
-
-            <div className="flex justify-center md:justify-end gap-3">
-              <a
-                href="https://github.com/ThCury"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="GitHub"
-                className="w-8 h-8 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-              >
-                <Github className="w-4 h-4" />
-              </a>
-
-              <a
-                href="https://www.linkedin.com/in/thiago-cury-freire-7b226a207/"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="LinkedIn"
-                className="w-8 h-8 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
-              >
-                <Linkedin className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
+          <p className="font-body text-xs text-primary-foreground/40">© 2026 Uze Bless. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
   );
 };
 
-export default Index; 
+export default Index;
