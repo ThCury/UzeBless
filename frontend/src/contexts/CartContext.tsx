@@ -1,14 +1,24 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import type { Product } from "@/data/products";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import type { ProductCategory } from "@/data/products";
 
 export interface CartItem {
-  product: Product;
+  product: CartProduct;
   quantity: number;
+}
+
+export interface CartProduct {
+  id: string;
+  name: string;
+  images: string[];
+  price: string;
+  category: ProductCategory | "todos";
+  description?: string;
+  details?: string[];
 }
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  addItem: (product: CartProduct) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -16,11 +26,30 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+const CART_STORAGE_KEY = "uzebless-cart";
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
 
-  const addItem = useCallback((product: Product) => {
+    try {
+      const storedItems = window.localStorage.getItem(CART_STORAGE_KEY);
+      if (!storedItems) return [];
+
+      const parsedItems = JSON.parse(storedItems);
+      return Array.isArray(parsedItems) ? parsedItems : [];
+    } catch (error) {
+      console.error("[CartContext] Erro ao carregar carrinho:", error);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
+
+  const addItem = useCallback((product: CartProduct) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.product.id === product.id);
       if (existing) {

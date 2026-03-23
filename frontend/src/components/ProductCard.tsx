@@ -1,28 +1,15 @@
 import { Link } from "react-router-dom";
-import { MessageCircle, ShoppingBag } from "lucide-react";
-import { useCart } from "@/contexts/CartContext";
-import { products } from "@/data/products";
+import { ShoppingBag } from "lucide-react";
 
 interface ProductCardProps {
   id: string;
   image: string;
   name: string;
   price: string;
-  whatsappNumber: string;
+  onBuy: () => void;
 }
 
-const ProductCard = ({ id, image, name, price, whatsappNumber }: ProductCardProps) => {
-  const { addItem } = useCart();
-  const message = encodeURIComponent(`Olá! Tenho interesse na peça: ${name} - ${price}`);
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${message}`;
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const product = products.find((p) => p.id === id);
-    if (product) addItem(product);
-  };
-
+const ProductCard = ({ id, image, name, price, onBuy }: ProductCardProps) => {
   return (
     <div className="group">
       <div className="relative overflow-hidden bg-muted mb-4">
@@ -41,11 +28,12 @@ const ProductCard = ({ id, image, name, price, whatsappNumber }: ProductCardProp
             Ver Detalhes
           </Link>
           <button
-            onClick={handleAddToCart}
+            type="button"
+            onClick={onBuy}
             className="pointer-events-auto flex items-center gap-2 text-primary-foreground font-body text-sm font-medium tracking-widest uppercase"
           >
             <ShoppingBag className="w-5 h-5" />
-            Adicionar
+            Comprar
           </button>
         </div>
       </div>

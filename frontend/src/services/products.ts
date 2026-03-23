@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import type { ProductCategory } from "@/data/products";
 import { normalizeProductImages } from "@/data/products";
 
@@ -17,6 +18,8 @@ export interface CatalogProduct {
   description?: string;
   details?: string[];
 }
+
+export const catalogProductsQueryKey = ["catalog-products"];
 
 const formatBRL = (value: number) =>
   new Intl.NumberFormat("pt-BR", {
@@ -65,3 +68,12 @@ export const fetchCatalogProducts = async (): Promise<CatalogProduct[]> => {
     };
   });
 };
+
+export const useCatalogProducts = () =>
+  useQuery({
+    queryKey: catalogProductsQueryKey,
+    queryFn: fetchCatalogProducts,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+  });

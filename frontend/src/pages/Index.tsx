@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
-import { MessageCircle, Instagram, Search, ShoppingBag } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
+import { MessageCircle, Instagram, Search, ShoppingBag, Github, Linkedin, Loader2, AlertCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import ProductCard from "@/components/ProductCard";
-import { products, WHATSAPP_NUMBER, type ProductCategory } from "@/data/products";
+import { WHATSAPP_NUMBER, type ProductCategory } from "@/data/products";
+import { useCatalogProducts } from "@/services/products";
 
-import heroImage from "@/assets/hero-jewelry.jpg";
+import heroImage from "@/assets/wallpaper1.jpeg";
 
 const PLACEHOLDER_IMAGE = "/placeholder.svg";
 
@@ -20,9 +21,13 @@ const categories: { value: ProductCategory | "todos"; label: string }[] = [
 ];
 
 const Index = () => {
-  const { totalItems } = useCart();
+  const navigate = useNavigate();
+  const { totalItems, addItem } = useCart();
+  const { data: products = [], isLoading, error } = useCatalogProducts();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<ProductCategory | "todos">("todos");
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showAllProducts, setShowAllProducts] = useState(false);
 
   const filteredProducts = useMemo(() => {
     return products
@@ -38,6 +43,16 @@ const Index = () => {
         if (aHasRealImage === bHasRealImage) return 0;
         return aHasRealImage ? -1 : 1;
       });
+  }, [products, searchQuery, activeCategory]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || activeCategory !== "todos";
+  const visibleProducts =
+    hasActiveFilters || showAllProducts ? filteredProducts : filteredProducts.slice(0, 10);
+  const shouldShowViewAllButton =
+    !hasActiveFilters && !showAllProducts && filteredProducts.length > 10;
+
+  useEffect(() => {
+    setShowAllProducts(false);
   }, [searchQuery, activeCategory]);
 
   return (
@@ -51,6 +66,9 @@ const Index = () => {
           <nav className="flex items-center gap-6">
             <a href="#pecas" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
               Peças
+            </a>
+            <a href="#faq" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
+              Perguntas
             </a>
             <a href="#sobre" className="font-body text-xs tracking-[0.2em] uppercase text-secondary hover:text-foreground transition-colors">
               Sobre
@@ -89,7 +107,7 @@ const Index = () => {
           </h2>
           <div className="w-16 h-px bg-gold mx-auto my-6 animate-fade-in-up" style={{ animationDelay: "0.3s" }} />
           <p className="font-body text-sm md:text-base text-primary-foreground/80 tracking-widest uppercase animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-            Elegância que abençoa
+            Seu look completo começa aqui
           </p>
           <a
             href="#pecas"
@@ -139,24 +157,104 @@ const Index = () => {
             </div>
           </div>
 
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  image={product.images[0]}
-                  name={product.name}
-                  price={product.price}
-                  whatsappNumber={WHATSAPP_NUMBER}
-                />
-              ))}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 animate-spin text-gold mb-4" />
             </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <AlertCircle className="w-10 h-10 text-destructive mb-4" />
+              <p className="font-body text-sm text-secondary">Não foi possível carregar os produtos.<br />Tente novamente em instantes.</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 max-w-6xl mx-auto">
+                {visibleProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    image={product.images[0]}
+                    name={product.name}
+                    price={product.price}
+                    onBuy={() => {
+                      addItem(product);
+                      navigate("/carrinho");
+                    }}
+                  />
+                ))}
+              </div>
+              {shouldShowViewAllButton && (
+                <div className="mt-10 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllProducts(true)}
+                    className="inline-flex items-center justify-center border border-foreground px-8 py-3 font-body text-xs tracking-[0.2em] uppercase text-foreground hover:bg-foreground hover:text-background transition-all"
+                  >
+                    Ver todos
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-center font-body text-sm text-secondary py-16">
               Nenhuma peça encontrada.
             </p>
           )}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="py-20 md:py-24 bg-background">
+        <div className="container mx-auto px-6 max-w-3xl">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-4xl md:text-5xl font-light text-foreground tracking-wide">
+              Perguntas frequentes
+            </h2>
+            <div className="w-12 h-px bg-gold mx-auto mt-4" />
+          </div>
+
+          {[
+            {
+              question: "Qual é o material?",
+              answer:
+                "Trabalhamos com semijoias banhadas em 50 milésimos de prata, garantindo brilho, durabilidade e acabamento sofisticado. Além disso, todas as peças recebem um banho de verniz protetor, que ajuda a preservar o brilho por mais tempo e aumenta a resistência ao desgaste do uso diário.",
+            },
+            {
+              question: "Pode causar alergia?",
+              answer:
+                "Não. Nossas peças são livres de níquel e consideradas hipoalergênicas. Isso significa que foram desenvolvidas para reduzir significativamente o risco de alergias, sendo confortáveis para a maioria das pessoas que possuem sensibilidade a metais comuns.",
+            },
+            {
+              question: "Como comprar?",
+              answer:
+                "É muito simples. Basta entrar em contato conosco pelo WhatsApp ou pelo direct do Instagram. Nossa equipe irá te atender, tirar dúvidas sobre as peças disponíveis e ajudar você a escolher a semijoia perfeita.",
+            },
+            {
+              question: "Frete",
+              answer:
+                "O envio das peças é feito após a confirmação do pedido. O valor do frete é por conta do cliente e pode variar de acordo com a cidade ou região de entrega. Informamos o valor exato no momento da compra.",
+            },
+          ].map((faq, index) => (
+            <div key={index} className="border-b border-border py-4">
+              <button
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                className="w-full flex justify-between items-center text-left"
+              >
+                <span className="font-body text-sm md:text-base text-foreground">
+                  {faq.question}
+                </span>
+                <span className="text-secondary text-lg">
+                  {openFaq === index ? "−" : "+"}
+                </span>
+              </button>
+
+              {openFaq === index && (
+                <p className="mt-3 text-sm text-secondary leading-relaxed">
+                  {faq.answer}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -182,25 +280,72 @@ const Index = () => {
           </a>
         </div>
       </section>
-
       {/* Footer */}
       <footer className="bg-primary text-primary-foreground py-12">
-        <div className="container mx-auto px-6 text-center">
-          <h3 className="font-display text-2xl tracking-[0.15em] mb-4">Uze Bless</h3>
-          <p className="font-body text-xs tracking-widest uppercase text-primary-foreground/60 mb-6">
-            Semijoias com bênção e estilo
+        <div className="container mx-auto px-6 relative">
+        {/* Centro */}
+        <div className="flex flex-col items-center text-center gap-4">
+          <h3 className="font-display text-2xl tracking-[0.15em]">Uze Bless</h3>
+
+          <p className="font-body text-xs tracking-widest uppercase text-primary-foreground/60">
+            Seu look completo começa aqui ✨
           </p>
-          <div className="flex justify-center gap-4 mb-8">
-            <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors">
+
+          <div className="flex gap-4">
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            >
               <MessageCircle className="w-4 h-4" />
             </a>
-            <a href="#" className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors">
+
+            <a
+              href="#"
+              className="w-10 h-10 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            >
               <Instagram className="w-4 h-4" />
             </a>
           </div>
-          <p className="font-body text-xs text-primary-foreground/40">© 2026 Uze Bless. Todos os direitos reservados.</p>
+
+          <p className="font-body text-xs text-primary-foreground/40">
+            © 2026 Uze Bless. Todos os direitos reservados.
+          </p>
         </div>
-      </footer>
+
+        {/* Direita */}
+        <div className="mt-8 md:mt-0 md:absolute md:right-6 md:bottom-0 flex flex-col items-center md:items-end text-center md:text-right gap-2">
+          <p className="font-body text-xs text-primary-foreground/60">
+            Desenvolvido por Thiago Cury
+          </p>
+
+          <div className="flex gap-3">
+            <a
+              href="https://github.com/ThCury"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub"
+              className="w-8 h-8 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            >
+              <Github className="w-4 h-4" />
+            </a>
+
+            <a
+              href="https://www.linkedin.com/in/thiago-cury-freire-7b226a207/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              className="w-8 h-8 border border-primary-foreground/30 flex items-center justify-center hover:bg-primary-foreground/10 transition-colors"
+            >
+              <Linkedin className="w-4 h-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+
     </div>
   );
 };

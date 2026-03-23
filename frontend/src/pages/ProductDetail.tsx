@@ -1,21 +1,36 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MessageCircle, ArrowLeft, ShoppingBag } from "lucide-react";
-import { products, WHATSAPP_NUMBER } from "@/data/products";
+import { WHATSAPP_NUMBER } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
+import { useCatalogProducts } from "@/services/products";
 
 const PLACEHOLDER_IMAGE = "/placeholder.svg";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { addItem } = useCart();
-  const product = products.find((p) => p.id === id);
+  const { addItem, totalItems } = useCart();
+  const { data: products = [], isLoading } = useCatalogProducts();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const dragOffset = useRef({ x: 0, y: 0 });
+
+  const product = products.find((item) => item.id === id) ?? null;
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [product?.id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="font-body text-sm text-secondary">Carregando produto...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -85,15 +100,25 @@ const ProductDetail = () => {
           <Link to="/" className="font-display text-2xl md:text-3xl font-bold tracking-[0.15em] text-foreground uppercase">
             Uze Bless
           </Link>
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-primary text-primary-foreground px-4 py-2 font-body text-xs tracking-[0.15em] uppercase hover:bg-secondary transition-colors flex items-center gap-2"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Contato
-          </a>
+          <div className="flex items-center gap-4">
+            <Link to="/carrinho" className="relative text-foreground hover:text-secondary transition-colors">
+              <ShoppingBag className="w-5 h-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 bg-gold text-primary-foreground text-[10px] font-body font-bold rounded-full flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-primary text-primary-foreground px-4 py-2 font-body text-xs tracking-[0.15em] uppercase hover:bg-secondary transition-colors flex items-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Contato
+            </a>
+          </div>
         </div>
       </header>
 
